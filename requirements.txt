@@ -8,3 +8,8 @@ matplotlib
 # Approach 2/3 generative latent-space BO
 torch          # SELFIES-VAE encoder/decoder (CPU is fine)
 selfies        # SMILES <-> SELFIES for the VAE vocabulary
+
+# JNK3 property: nothing new needed here (jnk3_oracle.py only uses rdkit, already
+# above, plus subprocess). The pretrained JNK3 classifier runs in a SEPARATE venv,
+# oracle_env, built by scripts/setup_jnk3_oracle_env.sh -- it's a legacy sklearn
+# pickle this venv's modern sklearn/rdkit can't load. See docs/jnk3_implementation_plan.md.
