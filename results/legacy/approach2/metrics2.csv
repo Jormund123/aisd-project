@@ -1,0 +1,5 @@
+approach,acq,run,best_found,improvement_over_seed,simple_regret,normalized_score,first_improvement_iter,iters_to_ceiling,success_rate,pred_mae,pred_rmse,pred_bias,pred_pearson,pred_r2,sign_acc_vs_seed,n_evals
+2,ei,1,0.2103,0.0023,0.0,1.0,3,3,0.1,0.7806,1.0316,0.6627,0.4555,-0.7624,0.7,10
+2,ei,2,0.2103,0.0023,0.0,1.0,4,4,0.1,0.9923,1.4052,0.9173,0.3984,-2.7234,0.7,10
+2,ucb,1,0.2103,0.0023,0.0,1.0,4,4,0.1,0.7962,1.1505,0.7646,0.3387,-1.5147,0.8,10
+2,ucb,2,0.2103,0.0023,0.0,1.0,3,3,0.1,0.7247,0.8409,0.5614,0.6985,-0.2126,0.9,10

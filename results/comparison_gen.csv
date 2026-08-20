@@ -1,0 +1,3 @@
+surrogate,n_runs,pairwise_acc_mean,pairwise_acc_std,best_found_mean,best_found_std
+A2 regressor (LLM predicts LogS),7,0.8254,0.0707,1.0749,0.3539
+A3 ranker (LLM judges pairs),4,0.7844,0.0448,0.7919,0.063

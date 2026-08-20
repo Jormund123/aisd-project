@@ -1,0 +1,16 @@
+iteration,run,llm,picked_id,picked_smiles,picked_name,bt_utility,bt_std_err,acq_value,n_duels_cumulative,true_logs_esol,best_so_far
+1,1,chatgpt,6,Clc1cccc(-c2c(Cl)cccc2Cl)c1,"2,3',6-trichlorobiphenyl",-0.0000,31.6228,63.2456,25,-5.3105,0.2080
+2,1,chatgpt,27,O=[N+]([O-])c1ccc(Cl)c(Cl)c1,"1,2-dichloro-4-nitrobenzene",-0.0000,31.6228,63.2456,50,-3.1961,0.2080
+3,1,chatgpt,30,O=P(O)(O)OCC(O)CO,glycerophosphoric acid,11.6895,12.1336,35.9567,75,0.3343,0.3343
+4,1,chatgpt,15,CC(C)CCOC(=O)c1ccccc1O,"benzoic acid, 2-hydroxy-, 3-methylbutyl ester",9.4171,13.1474,35.7119,100,-2.7981,0.3343
+5,1,chatgpt,5,COc1ccc(N/N=C2/C(=O)c3ccc(Nc4nc(Nc5ccc6c(c5)C=C(S(=O)(=O)[O-])/C(=N/Nc5ccc(OC)cc5S(=O)(=O)[O-])C6=O)nc(N5CCOCC5)n4)cc3C=C2S(=O)(=O)[O-])c(S(=O)(=O)[O-])c1,"tetrasodium 7,7'-[(6-morpholin-4-yl-1,3,5-triazine-2,4-diyl)diimino]bis{4-hydroxy-3-[(4-methoxy-2-sulfonatophenyl)diazenyl]naphthalene-2-sulfonate}",8.4205,6.2696,20.9596,125,-7.0982,0.3343
+6,1,chatgpt,12,CN(CCC#N)c1ccc(C=CC2=[N+](C)c3ccccc3C2(C)C)cc1,"2-[2-[4-[(2-cyanoethyl)methylamino]phenyl]vinyl]-1,3,3-trimethyl-3H-indolium dihydrogen phosphate",8.1676,6.2039,20.5754,150,-4.9835,0.3343
+7,1,chatgpt,25,OCC1(O)OCC(O)C(O)C1O,fructose,7.3785,6.1156,19.6097,175,1.1375,1.1375
+8,1,chatgpt,14,Cc1cc(C)c[n+]([O-])c1,"3,5-dimethylpyridine-n-oxide",6.2662,6.1690,18.6042,200,-1.6871,1.1375
+9,1,chatgpt,1,NC(=O)NCC(=O)O,n-(aminocarbonyl)glycine,6.5512,6.0768,18.7049,225,0.3541,1.1375
+10,1,chatgpt,19,CC(=O)c1ccc(O)c(C(=O)[O-])c1,"benzoic acid, 5-acetyl-2-hydroxy-",4.4192,5.9923,16.4038,250,-1.1340,1.1375
+11,1,chatgpt,21,O=C1NC(=O)C2(CC2)C(=O)N1,"spiro-5,5-dimethylenebarbituric  acid",4.0387,5.9924,16.0235,275,-0.2491,1.1375
+12,1,chatgpt,17,NS(=O)(=O)c1cc(S(=O)(=O)c2ccc(O)cc2)co1,4-(4-hydroxyphenyl)sulfonylfuran-2-sulfonamide,4.1078,5.9595,16.0268,300,-2.2442,1.1375
+13,1,chatgpt,9,CNS(=O)(=O)c1cc(OC)c(N)cc1OC,"4-amino-2,5-dimethoxy-N-methylbenzenesulfonamide",3.0907,5.9268,14.9442,325,-1.5028,1.1375
+14,1,chatgpt,16,CCCOCC(O)COCCC,"2-propanol, 1,3-dipropoxy-",1.9804,5.8283,13.6370,350,-1.1611,1.1375
+15,1,chatgpt,3,CN(O)C(=O)C1CCCCCC1,N-Hydroxy-N-methylcycloheptanecarboxamide,1.2586,5.8217,12.9020,375,-1.9725,1.1375

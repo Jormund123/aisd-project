@@ -1,0 +1,83 @@
+
+6
+
+Automatic Zoom
+AISD Lab Course
+Basic Info
+Communication:
+- Weekly meetings (virtual)
+- Email: s13kwija@uni-bonn.de
+- Discord: ktirta
+Timeline: TBD
+Workload:
+- Literature review
+- Implementation
+Deliverables:
+- Presentation
+- Report
+AI for Ranking-based 
+Optimization
+AI for Ranking-based Optimization
+High 
+toxicity
+Low 
+toxicity
+molecule space
+- Experimental validation is slow and expensive
+- Scalar labels (e.g., toxicity values) are scarce
+Dataset. Maybe we only have 4 labels.
+Given a limited experimental budget, how can we find the 
+best performing item? (e.g., least toxic molecule)
+design space
+=performance 
+space
+AI for Ranking-based Optimization
+Regressor
+Pairwise 
+Ranker
+Bayesian Optimization
+Acquisition 
+Function
+1
+2
+3
+4
+5 6 7
+8
+9
+tells you what to 
+sample next
+2 6
+if else
+Acquisition 
+Function
+tells you what to 
+sample next
+2 6
+Preferential Bayesian Optimization
+AI for Ranking-based Optimization
+1. Find a (quantitative) problem that you like. (e.g., molecule solubility, airfoil shape). 
+Criteria:
+a. 1-D problem, quantitative problem. We can quantify the performance of a design with a single 
+scalar number.
+b. We have computational tools to verify the performance of a new design.
+2. Implement and evaluate LLM as,
+a. A regression surrogate, i.e., predicting the absolute performance of each design
+b. A pairwise ranker surrogate, i.e., predicting the relative performance between design A and design 
+B (is A better than B).
+3. Implement and evaluate optimization framework:
+a. LLM as a direct optimizer
+b. Bayesian Optimization with LLM as a surrogate regressor
+c. Preferential Bayesian Optimization with LLM as a surrogate pairwise ranker
+AI for Ranking-based Optimization
+Relevant Literatures:
+1. Shahriari, Bobak, et al. "Taking the human out of the loop: A review of Bayesian optimization." Proceedings of the 
+IEEE 104.1 (2015): 148-175.
+2. González, Javier, et al. "Preferential bayesian optimization." International Conference on Machine Learning. PMLR, 
+2017.
+3. Cai, Chengkun, et al. "Bayesian optimization for controlled image editing via llms." Findings of the Association for 
+Computational Linguistics: ACL 2025. 2025.
+4. Jablonka, Kevin Maik, et al. "Leveraging large language models for predictive chemistry." Nature Machine 
+Intelligence 6.2 (2024): 161-169.
+5. Liu, Chenxi, Selena Ling, and Alec Jacobson. "GimmBO: Interactive Generative Image Model Merging via Bayesian 
+Optimization." arXiv preprint arXiv:2601.18585 (2026).

@@ -1,0 +1,78 @@
+\section{Approach 3: AI as Judge (Generative PBO)}
+\begin{itemize}
+    \item Same VAE map and GP engine as Approach 2; the AI never scores a molecule, it only answers "which is more soluble, A or B?" for pairs (duels).
+    \item Bradley-Terry turns all duels so far into a per-molecule utility (win/loss strength, like ranking sports teams).
+    \item The GP fits the solubility landscape over those utilities; a UCB acquisition picks the next candidate to test.
+    \item ESOL scores the pick (uses budget), the pick is added back into the pool as a fresh duel reference, and the loop repeats.
+\end{itemize}
+
+\subsection{Pipeline}
+\begin{enumerate}
+    \item \textbf{Bootstrap:} before round 1, the 13 seed molecules are ranked against each other with a chain + star set of duels, so the very first GP fit already has a utility gradient instead of flat nothing.
+    \item \textbf{Generate:} each round, the VAE decodes 48 fresh candidates anchored around the top-6 most-soluble molecules measured so far.
+    \item \textbf{Rank via GP:} Bradley-Terry utility $\to$ GP posterior mean/uncertainty over candidates $\to$ UCB (kappa 0.5) picks a batch of up to 5.
+    \item \textbf{Duel the picks:} each new pick is duelled against the top-3 true-LogS incumbents plus the current ranking leader, so every pick is judged against strong references, not random ones.
+    \item \textbf{Evaluate:} ESOL scores the picks (budget of 15 total), picks join the pool as future duel references, repeat until budget exhausted.
+\end{enumerate}
+
+\subsection{Why the ranking pool is 13 + 15 = 28 molecules, not more}
+The pool that Bradley-Terry ranks is exactly the seeds plus everything actually spent budget on: 13 seeds (all encode cleanly, none dropped) + 15 budget-evaluated picks = 28 molecules per run. It is not larger because:
+\begin{itemize}
+    \item Every molecule added to the ranking pool needs real duels to place it, and duels are pasted to the LLM by hand (batch size 5/round, 80--88 duels per full run). Growing the pool without spending budget would mean asking the AI to judge molecules that were never actually scored, which breaks the whole point of a budget-limited search.
+    \item The 48 candidates generated per round are a disposable proposal pool: the GP/UCB step scores all 48, but only the top few (up to 5) that get evaluated by ESOL are kept and folded into the ranked set. The other $\sim$43 per round are discarded, since keeping them would need duels too and adds no signal without a real ESOL label.
+\end{itemize}
+
+\subsection{Results}
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccc}
+\hline
+Run & Best found & Duels asked & Pairwise accuracy vs.\ ESOL & Candidate pool \\
+\hline
+1 & +0.755 & 80 & 0.799 & seed pool (default) \\
+2 & +0.901 & 88 & 0.841 & seed pool (default) \\
+3 & +0.755 & 80 & 0.780 & seed pool (default) \\
+4 & +0.755 & 80 & 0.717 & independent, different seed \\
+\hline
+\end{tabular}
+\caption{Results for Approach 3. Pooled: pairwise accuracy $0.786 \pm 0.052$, best found $0.804 \pm 0.069$.}
+\label{tab:results_a3}
+\end{table}
+
+Three of four runs (including run 4, on a genuinely independent candidate-generation seed) converge on the same molecule, glycinamide (+0.7555), evidence of a robustly-reachable peak, not a shared-seed artifact. The AI's duel judgments are correct 72--84\% of the time, comparable to Approach 2's regressor (0.83) on the same fair pairwise-accuracy yardstick. Best-found sits a bit below Approach 2's, since a duel gives only ordinal signal (A or B, no magnitude), so the GP landscape is coarser and the search climbs slightly less far in the same budget.
+
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/convergence3_gen.png}
+        \caption{Best score so far, per evaluation. Run 2 climbs highest; runs 1 and 4 land on the same lower peak from different candidate pools.}
+        \label{fig:convergence3}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/topk3_gen.png}
+        \caption{Top-3-so-far mean per round. Rises steadily, steepest for run 2, then levels off.}
+        \label{fig:topk3}
+    \end{subfigure}
+
+    \vspace{0.5em}
+
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ranking_quality3_gen.png}
+        \caption{Bradley-Terry strength vs.\ true ESOL score. Dots trend upward in all runs, tightest for run 2.}
+        \label{fig:rankingquality3}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/pairwise3_gen.png}
+        \caption{Pairwise accuracy per run vs.\ coin-flip (0.50). All four sit between 0.72 and 0.84.}
+        \label{fig:pairwise3}
+    \end{subfigure}
+
+    \caption{Comparison across Approach 3 runs. Run 3's step-by-step trajectory was lost to a file mishap, so only 3 lines appear in the convergence/top-$k$ plots; its final best-found and pairwise accuracy above are recovered from its ranking file.}
+    \label{fig:results_grid_a3}
+\end{figure}

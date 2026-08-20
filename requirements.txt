@@ -1,0 +1,10 @@
+# Core chemistry + data
+rdkit
+pandas
+numpy
+scipy
+matplotlib
+
+# Approach 2/3 generative latent-space BO
+torch          # SELFIES-VAE encoder/decoder (CPU is fine)
+selfies        # SMILES <-> SELFIES for the VAE vocabulary

@@ -1,0 +1,19 @@
+\section{Comparison}
+Same budget (15 evaluations), same 13 seed molecules, same starting bar (+0.208) for all three, so the outcome column is directly comparable. The AI's-job column is not one-size-fits-all: Approach 1 invents freely (graded by hit-rate), Approaches 2/3 only steer a shared VAE+GP+BO engine (graded by pairwise accuracy vs.\ ESOL, via one shared \texttt{analysis\_common.py}).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\hline
+Approach & Best (mean / max) & Improvement over bar & AI's job \\
+\hline
+1. Direct Optimizer      & 1.92 / 3.31 & +1.71 & 93\% of proposals beat the bar \\
+2. Predictor (gen.\ BO)  & 1.07 / 1.22 & +0.87 & pairwise acc.\ 0.825; 1/7 runs failed \\
+3. Judge (gen.\ PBO)     & 0.79 / 0.90 & +0.58 & pairwise acc.\ 0.786 \\
+\hline
+\end{tabular}
+\caption{All three approaches vs.\ the seed bar (+0.208) and random baseline (+0.408).}
+\label{tab:comparison}
+\end{table}
+
+\textbf{Takeaways:} Approach 1 reaches the highest scores but only after strict rules block it from cheating the ESOL formula (Version C). Approaches 2 and 3 invent more conservatively (same VAE+BO engine, same budget) but expose a clean, fair comparison: as a regressor or as a pairwise judge, the AI orders solubility about equally well (0.83 vs.\ 0.79), even though its raw numeric guesses are unreliable. Approach 2's one outright failure (UCB, independent seed) is the clearest reminder that "usually works" is not "always works."

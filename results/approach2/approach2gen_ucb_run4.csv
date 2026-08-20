@@ -1,0 +1,16 @@
+eval_idx,round,run,llm,acq,picked_smiles,gp_mu,gp_sigma,acq_value,surrogate_label,true_logs_esol,best_so_far
+1,1,4,gemini,ucb,NC=C1C(Cl)=C(Cl)C(Cl)=C1C(=O)O,-1.3008,1.1663,1.0318,-3.2500,-2.5938,0.2080
+2,1,4,gemini,ucb,O=C(O)C(Cl)(Cl)Cl,-1.4653,1.2192,0.9732,0.8500,-1.7610,0.2080
+3,1,4,gemini,ucb,CC=CC(Cl)=C(PCl)c1cc(Cl)c(Cl)cc1Cl,-1.5695,1.2202,0.8709,-6.4000,-6.4498,0.2080
+4,1,4,gemini,ucb,O=C(O)c1ccc(Cl)cc1Cl,-1.4767,1.1670,0.8573,-3.8000,-3.0576,0.2080
+5,1,4,gemini,ucb,O=C(O)c1ccc(O)c(O)c1,-1.4864,1.1703,0.8542,-0.8500,-1.6347,0.2080
+6,2,4,gemini,ucb,Nc1ccc(N)cc1,-1.6686,1.6770,1.6854,-1.0500,-1.6016,0.2080
+7,2,4,gemini,ucb,O=C(O)c1ccccc1OCCOCCOCCOCCO,-1.8026,1.7435,1.6845,0.8500,-1.6403,0.2080
+8,2,4,gemini,ucb,CC(C)(C)C(=O)Nc1ccc(F)cc1C(=O)NC(=O)NC=O,-1.8118,1.7437,1.6757,-3.7500,-2.6473,0.2080
+9,2,4,gemini,ucb,Cc1ccc(N)cc1,-1.7165,1.6935,1.6705,-2.2500,-2.0530,0.2080
+10,2,4,gemini,ucb,O=C(O)c1ccccc1OCCOCCOCCOCCOCCOCCO,-1.8467,1.7500,1.6533,1.4500,-1.7682,0.2080
+11,3,4,gemini,ucb,Nc1nc(N)nc(N)n1,-0.1959,1.3074,2.4190,-2.2000,-0.2448,0.2080
+12,3,4,gemini,ucb,O=Cc1ccc2cc1C(=O)NC(=O)NC2=O,-1.8773,1.3825,0.8878,-3.5000,-1.4623,0.2080
+13,3,4,gemini,ucb,CC(C)(C)CC(C)(C)CC(C)(C)C(C)(C)C,-2.5819,1.6606,0.7392,-5.5000,-4.7700,0.2080
+14,3,4,gemini,ucb,NC(=O)Nc1cc2c(N)cc1S(=O)(=O)NC(=O)NC2=O,-2.0516,1.3126,0.5736,-3.8000,-1.1592,0.2080
+15,3,4,gemini,ucb,CC(C)C(N)=O,-0.5539,0.4955,0.4371,-0.4000,-0.3946,0.2080

@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip3 list *)",
+      "Bash(pip3 install *)",
+      "Bash(../../venv/bin/python3 -c ' *)",
+      "Bash(./venv/bin/python src/analysis.py)",
+      "Bash(../venv/bin/python analysis2.py)",
+      "Bash(cat results/metrics_all.csv)",
+      "Bash(ls -1 results/approach1 results/approach2 results/approach3)",
+      "Bash(cat results/baseline_summary.csv)",
+      "Bash(./venv/bin/pip list *)",
+      "Bash(mkdir -p results/legacy/approach2 results/legacy/approach3)",
+      "Bash(mv results/approach2/*.csv results/legacy/approach2/)",
+      "Bash(mv results/approach3/*.csv results/legacy/approach3/)",
+      "Bash(./venv/bin/python -c \"import torch, rdkit, selfies, numpy, scipy, pandas; print\\('all deps OK'\\)\")",
+      "Bash(./venv/bin/python src/approach2/optimizer_approach2_gen.py --auto --run 99 --acq ei --budget 5)",
+      "Bash(./venv/bin/python -)",
+      "Bash(./venv/bin/python src/approach2/analysis2_gen.py)",
+      "Bash(./venv/bin/python src/approach3/analysis3_gen.py)",
+      "Bash(./venv/bin/python src/compare_gen.py)",
+      "Bash(sed -n '1,494p' docs/presentation.md)",
+      "Bash(mv /tmp/presentation_trimmed.md docs/presentation.md)",
+      "Bash(./venv/bin/python3 -c ' *)"
+    ],
+    "defaultMode": "acceptEdits"
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "claude-flow"
+  ]
+}

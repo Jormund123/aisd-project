@@ -1,0 +1,16 @@
+eval_idx,round,run,llm,acq,picked_smiles,gp_mu,gp_sigma,acq_value,surrogate_label,true_logs_esol,best_so_far
+1,1,2,auto,ei,NC=C1C(Cl)=C(Cl)C(Cl)=C1C(=O)O,-1.3008,1.1663,0.0538,-2.5938,-2.5938,0.2080
+2,1,2,auto,ei,O=C(O)C(Cl)(Cl)Cl,-1.4653,1.2192,0.0475,-1.7610,-1.7610,0.2080
+3,1,2,auto,ei,CC=CC(Cl)=C(PCl)c1cc(Cl)c(Cl)cc1Cl,-1.5695,1.2202,0.0394,-6.4498,-6.4498,0.2080
+4,1,2,auto,ei,O=C(O)c1ccc(Cl)cc1Cl,-1.4767,1.1670,0.0388,-3.0576,-3.0576,0.2080
+5,1,2,auto,ei,O=C(O)c1ccc(O)c(O)c1,-1.4864,1.1703,0.0386,-1.6347,-1.6347,0.2080
+6,2,2,auto,ei,O=C(O)c1ccc(O)cc1C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)CO,-1.7991,1.4075,0.0487,2.3290,2.3290,2.3290
+7,2,2,auto,ei,O=C(O)c1ccccc1OCCOCCOCCOCCOCCOCCO,-2.0036,1.3364,0.0273,-1.7682,-1.7682,2.3290
+8,2,2,auto,ei,CC(C)(C)C(=O)Nc1ccc(F)cc1C(=O)NC(=O)NC=O,-1.9092,1.2209,0.0205,-2.6473,-2.6473,2.3290
+9,2,2,auto,ei,Nc1ccc(N)cc1,-1.2072,0.8418,0.0161,-1.6016,-1.6016,2.3290
+10,2,2,auto,ei,O=C(O)c1ccccc1OCCOCCOCCOCCO,-2.0330,1.2173,0.0157,-1.6403,-1.6403,2.3290
+11,3,2,auto,ei,CC(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(=O)O,1.1482,0.9419,0.0473,4.2500,4.2500,4.2500
+12,3,2,auto,ei,CC(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)CO,0.8674,1.0673,0.0419,4.6773,4.6773,4.6773
+13,3,2,auto,ei,O=C(O)c1ccc(O)c(Cl)c1OC(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)CO,2.1153,0.2915,0.0394,1.5999,1.5999,4.6773
+14,3,2,auto,ei,CC(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)OCC(=O)O,0.8888,1.0156,0.0358,4.2121,4.2121,4.6773
+15,3,2,auto,ei,CC(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)C(O)CC(=O)O,0.8765,1.0086,0.0338,3.9832,3.9832,4.6773

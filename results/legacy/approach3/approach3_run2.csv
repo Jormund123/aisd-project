@@ -1,0 +1,16 @@
+iteration,run,llm,picked_id,picked_smiles,picked_name,bt_utility,bt_std_err,acq_value,n_duels_cumulative,true_logs_esol,best_so_far
+1,2,gemini,8,CCCCCCCCCCCCCCCCOC(=O)Oc1c(Cl)cc(C(=O)OCC)cc1Cl,"ethyl 3,5-dichloro-4-{[(hexadecyloxy)carbonyl]oxy}benzoate",-0.0000,31.6228,63.2456,25,-7.6834,0.2080
+2,2,gemini,2,CCCC(=O)OCn1cnc2c1c(=O)n(C)c(=O)n2C,7-(butyryloxymethyl)theophylline;  7-(butanoyloxymethyl)theophylline,-0.0458,30.9252,61.8046,50,-1.4795,0.2080
+3,2,gemini,22,CCOP(=S)(OCC)Oc1nc(Cl)n(C(C)C)n1,isazofos,-0.1396,23.5591,46.9786,75,-3.5377,0.2080
+4,2,gemini,10,O=[N+]([O-])c1ccc(-c2nc3ccc(F)cc3[nH]2)o1,6-fluoro-2-(5-nitrofuran-2-yl)-1H-benzimidazole,6.7674,17.4855,41.7383,100,-3.6243,0.2080
+5,2,gemini,25,OCC1(O)OCC(O)C(O)C1O,fructose,19.4092,10.5275,40.4643,125,1.1375,1.1375
+6,2,gemini,30,O=P(O)(O)OCC(O)CO,glycerophosphoric acid,18.3709,8.9600,36.2908,150,0.3343,1.1375
+7,2,gemini,1,NC(=O)NCC(=O)O,n-(aminocarbonyl)glycine,15.6471,9.1449,33.9368,175,0.3541,1.1375
+8,2,gemini,14,Cc1cc(C)c[n+]([O-])c1,"3,5-dimethylpyridine-n-oxide",16.7191,8.4089,33.5369,200,-1.6871,1.1375
+9,2,gemini,5,COc1ccc(N/N=C2/C(=O)c3ccc(Nc4nc(Nc5ccc6c(c5)C=C(S(=O)(=O)[O-])/C(=N/Nc5ccc(OC)cc5S(=O)(=O)[O-])C6=O)nc(N5CCOCC5)n4)cc3C=C2S(=O)(=O)[O-])c(S(=O)(=O)[O-])c1,"tetrasodium 7,7'-[(6-morpholin-4-yl-1,3,5-triazine-2,4-diyl)diimino]bis{4-hydroxy-3-[(4-methoxy-2-sulfonatophenyl)diazenyl]naphthalene-2-sulfonate}",18.6140,7.9867,34.5873,225,-7.0982,1.1375
+10,2,gemini,24,COC(/C=C\C(OC)OC)OC,"1,1,4,4-tetramethoxy-but-2-ene",16.4094,7.5957,31.6008,250,-1.0282,1.1375
+11,2,gemini,16,CCCOCC(O)COCCC,"2-propanol, 1,3-dipropoxy-",13.9863,7.0202,28.0267,275,-1.1611,1.1375
+12,2,gemini,3,CN(O)C(=O)C1CCCCCC1,N-Hydroxy-N-methylcycloheptanecarboxamide,13.3489,7.0899,27.5288,300,-1.9725,1.1375
+13,2,gemini,12,CN(CCC#N)c1ccc(C=CC2=[N+](C)c3ccccc3C2(C)C)cc1,"2-[2-[4-[(2-cyanoethyl)methylamino]phenyl]vinyl]-1,3,3-trimethyl-3H-indolium dihydrogen phosphate",11.6144,6.7884,25.1913,325,-4.9835,1.1375
+14,2,gemini,21,O=C1NC(=O)C2(CC2)C(=O)N1,"spiro-5,5-dimethylenebarbituric  acid",9.2698,6.6548,22.5794,350,-0.2491,1.1375
+15,2,gemini,19,CC(=O)c1ccc(O)c(C(=O)[O-])c1,"benzoic acid, 5-acetyl-2-hydroxy-",9.1204,6.5510,22.2224,375,-1.1340,1.1375
