@@ -13,9 +13,8 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src", "approach2"))
 
-from generative_bo import rank_candidates, generate_candidates  # noqa: E402
+from common import rank_candidates, generate_candidates  # noqa: E402
 
 
 def test_rank_ucb_kappa_zero_is_greedy_on_mean():

@@ -12,7 +12,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from gp import GP, _rbf  # noqa: E402
+from common import GP, _rbf  # noqa: E402
 
 
 def test_rbf_diagonal_is_signal_var():

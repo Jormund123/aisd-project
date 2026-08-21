@@ -10,10 +10,9 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src", "approach3"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
-from pairwise import (  # noqa: E402
+from common import (  # noqa: E402
     win_count_scores,
     bradley_terry,
     pbo_acquisition,

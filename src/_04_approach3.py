@@ -1,13 +1,21 @@
 """
-Approach 3 on JNK3 (generative): Preferential BO with the LLM as a pairwise ranker,
-searching the SELFIES-VAE latent space. Identical loop to optimizer_approach3_gen.py;
-only the property changed (JNK3 score via TDC's Oracle instead of ESOL LogS).
-Bradley-Terry, GP, and generate_candidates/rank_candidates are reused completely
-unmodified.
+Approach 3 (generative): Preferential Bayesian Optimization with the LLM as a pairwise
+ranker, searching the SELFIES-VAE latent space. Works for any property registered in
+common.PROPERTIES.
+
+The LLM never gives a number. It only judges duels ("which is more X, A or B?"). Per
+round: Bradley-Terry turns all duels so far into a latent utility per known molecule;
+a GP is fit on (latent z, utility); NEW candidates come from the VAE; the GP posterior
+feeds a UCB acquisition -> pick a small batch. The oracle scores the picks (budget)
+for the convergence curve; the LLM duels each pick against strong/known references to
+place it in the ranking.
+
+Manual LLM stays copy-paste. --auto answers duels with the oracle (optionally noisy)
+so the whole loop is validated with no LLM.
 
 Usage:
-    python optimizer_approach3_gen_jnk3.py --run 1 --budget 15 --batch 5
-    python optimizer_approach3_gen_jnk3.py --auto --budget 15            # validation
+    python _04_approach3.py --property esol --run 1 --budget 15 --batch 5
+    python _04_approach3.py --property jnk3 --auto --budget 15            # validation
 """
 
 import argparse
@@ -17,27 +25,50 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "approach2"))
+sys.path.insert(0, os.path.dirname(__file__))
+from common import (  # noqa: E402
+    PROPERTIES, SelfiesVAE, GP, generate_candidates, rank_candidates,
+    bradley_terry, ranking_metrics, oracle_answers, parse_pairwise,
+    read_pasted_json,
+)
+from _01_seed_molecules import get_seeds  # noqa: E402
 
-from jnk3_oracle import calculate_jnk3_batch           # noqa: E402
-from vae import SelfiesVAE                             # noqa: E402
-from gp import GP                                      # noqa: E402
-from generative_bo import generate_candidates, rank_candidates  # noqa: E402
-from pairwise import bradley_terry, ranking_metrics    # noqa: E402
-from prompt_templates3_jnk3 import generate_pairwise_prompt  # noqa: E402
-from optimizer_approach2_gen_jnk3 import build_seed_observed_jnk3  # noqa: E402
-from optimizer_approach2 import read_pasted_json        # noqa: E402
-from optimizer_approach3 import oracle_answers, parse_pairwise  # noqa: E402
-
-VAE_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "models", "selfies_vae.pt")
-RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "results", "approach3", "jnk3")
+VAE_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "selfies_vae.pt")
+RESULTS_ROOT = os.path.join(os.path.dirname(__file__), "..", "results", "approach3")
 
 CSV_FIELDS = [
     "eval_idx", "round", "run", "llm", "picked_smiles",
     "gp_util_mu", "gp_sigma", "acq_value",
-    "true_jnk3", "best_so_far", "n_duels_cum",
+    "true_score", "best_so_far", "n_duels_cum",
 ]
+
+
+def generate_pairwise_prompt(observed, candidates, pairs, prop):
+    lines_obs = [f"{i:2d}. {m['smiles']}: {prop['label']} = {m['score']:.3f}"
+                 for i, m in enumerate(observed, 1)]
+    lines_duels = []
+    for q, (i, j) in enumerate(pairs, 1):
+        a, b = candidates[i], candidates[j]
+        lines_duels.append(f"Q{q}: A = {a['smiles']}   vs   B = {b['smiles']}")
+    return f"""You are a computational chemist comparing molecules by predicted {prop['prompt_property_desc']}.
+
+{prop['domain_hint']}For reference, here are molecules already measured with their {prop['label']} values:
+
+{chr(10).join(lines_obs)}
+
+Below are pairs of molecules. For EACH pair, decide which molecule scores HIGHER on {prop['label']}. Do not estimate numbers, just choose A or B.
+
+{chr(10).join(lines_duels)}
+
+Respond ONLY with a JSON array in snippet code, one object per question, no other text:
+
+[
+  {{"q": 1, "winner": "A"}},
+  {{"q": 2, "winner": "B"}}
+]
+
+Answer every question. "winner" must be exactly "A" or "B".
+"""
 
 
 def make_duel_pairs(new_idxs, ref_idxs, n_mols, rng, n_rand=1):
@@ -52,11 +83,11 @@ def make_duel_pairs(new_idxs, ref_idxs, n_mols, rng, n_rand=1):
     return pairs
 
 
-def answer_duels(pairs, context, mols, true_vals, auto, noise, rng):
+def answer_duels(pairs, context, mols, true_vals, prop, auto, noise, rng):
     if auto:
         return oracle_answers(pairs, true_vals, noise, rng)
     print("\n----- COPY THIS PROMPT -----\n")
-    print(generate_pairwise_prompt(context, mols, pairs))
+    print(generate_pairwise_prompt(context, mols, pairs, prop))
     print("\n----- END PROMPT -----")
     while True:
         duels = parse_pairwise(read_pasted_json(), pairs)
@@ -66,51 +97,54 @@ def answer_duels(pairs, context, mols, true_vals, auto, noise, rng):
 
 
 def main():
-    p = argparse.ArgumentParser(description="Approach 3 generative (JNK3): PBO, LLM ranker")
+    p = argparse.ArgumentParser(description="Approach 3 generative: PBO, LLM ranker")
+    p.add_argument("--property", default="esol", choices=list(PROPERTIES))
     p.add_argument("--run", type=int, default=1)
-    p.add_argument("--budget", type=int, default=15, help="total JNK3 oracle evaluations")
+    p.add_argument("--budget", type=int, default=15)
     p.add_argument("--batch", type=int, default=5, help="molecules picked per round")
     p.add_argument("--candidates", type=int, default=48, help="molecules generated/round")
     p.add_argument("--kappa", type=float, default=0.5, help="UCB exploration weight")
     p.add_argument("--llm", default="gemini")
     p.add_argument("--vae", default=VAE_PATH)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--auto", action="store_true", help="JNK3 oracle answers the duels")
+    p.add_argument("--auto", action="store_true", help="oracle answers the duels")
     p.add_argument("--noise", type=float, default=0.0, help="--auto duel flip probability")
     args = p.parse_args()
 
+    prop = PROPERTIES[args.property]
     rng = np.random.default_rng(args.seed)
     vae = SelfiesVAE.load(args.vae)
 
-    seeds = build_seed_observed_jnk3()
+    seeds = get_seeds(args.property)
     context = seeds
     mols = [{"name": m["name"], "smiles": m["smiles"]} for m in seeds]
     Zc, kept = vae.encode([m["smiles"] for m in mols])
     keep = set(kept)
     mols = [m for m in mols if m["smiles"] in keep]
-    true_results = calculate_jnk3_batch([m["smiles"] for m in mols])
-    true_vals = [r["jnk3_score"] if r is not None else 0.0 for r in true_results]
+    raw_true = prop["score_batch"]([m["smiles"] for m in mols])
+    true_vals = [v if v is not None else 0.0 for v in raw_true]
     Z_mols = list(Zc)
     duels = []
     evaluated = {m["smiles"] for m in mols}
     f_best = max(true_vals)
-    best = {"smiles": mols[int(np.argmax(true_vals))]["smiles"], "jnk3": f_best}
+    best = {"smiles": mols[int(np.argmax(true_vals))]["smiles"], "score": f_best}
 
-    os.makedirs(RESULTS_DIR, exist_ok=True)
-    csv_path = os.path.join(RESULTS_DIR, f"approach3gen_run{args.run}.csv")
+    results_dir = RESULTS_ROOT if args.property == "esol" else os.path.join(RESULTS_ROOT, args.property)
+    os.makedirs(results_dir, exist_ok=True)
+    csv_path = os.path.join(results_dir, f"approach3gen_run{args.run}.csv")
     with open(csv_path, "w", newline="") as f:
         csv.DictWriter(f, fieldnames=CSV_FIELDS).writeheader()
 
-    mode = "AUTO (JNK3 duels)" if args.auto else f"MANUAL LLM ({args.llm})"
-    print(f"Approach 3 GEN (JNK3) | Run {args.run} | Budget {args.budget} | batch {args.batch} "
-          f"| kappa {args.kappa} | {mode}")
+    mode = "AUTO (oracle duels)" if args.auto else f"MANUAL LLM ({args.llm})"
+    print(f"Approach 3 GEN ({args.property}) | Run {args.run} | Budget {args.budget} "
+          f"| batch {args.batch} | kappa {args.kappa} | {mode}")
     print(f"Logging to: {csv_path}")
-    print(f"Starting best (seed): {best['smiles']} JNK3 = {best['jnk3']:.3f}")
+    print(f"Starting best (seed): {best['smiles']} {prop['label']} = {best['score']:.3f}")
 
     n_seed = len(mols)
     boot = [(i, i + 1) for i in range(n_seed - 1)]
     boot += [(0, i) for i in range(2, n_seed)]
-    duels += answer_duels(boot, context, mols, true_vals, args.auto, args.noise, rng)
+    duels += answer_duels(boot, context, mols, true_vals, prop, args.auto, args.noise, rng)
     print(f"Bootstrapped ranking with {len(boot)} seed duels.")
 
     eval_idx = 0
@@ -133,8 +167,8 @@ def main():
         take = min(args.batch, args.budget - eval_idx, len(order))
         pick_pos = list(order[:take])
         pick_smiles = [cand_smiles[i] for i in pick_pos]
-        pick_results = calculate_jnk3_batch(pick_smiles)
-        true_pick = [r["jnk3_score"] if r is not None else 0.0 for r in pick_results]
+        raw_pick = prop["score_batch"](pick_smiles)
+        true_pick = [v if v is not None else 0.0 for v in raw_pick]
 
         new_idxs = []
         for pos, smi, tv in zip(pick_pos, pick_smiles, true_pick):
@@ -149,7 +183,7 @@ def main():
                    utility.max() > utility.min() else [])
         ref_idxs = list(dict.fromkeys(by_true + by_util))
         pairs = make_duel_pairs(new_idxs, ref_idxs, len(mols), rng)
-        duels += answer_duels(pairs, context, mols, true_vals, args.auto, args.noise, rng)
+        duels += answer_duels(pairs, context, mols, true_vals, prop, args.auto, args.noise, rng)
 
         print("\n" + "=" * 60)
         print(f"=== Round {rnd} | picked {take} | evals {eval_idx}/{args.budget} "
@@ -158,32 +192,32 @@ def main():
             eval_idx += 1
             tag = ""
             if tv > f_best:
-                f_best, best = tv, {"smiles": smi, "jnk3": tv}
+                f_best, best = tv, {"smiles": smi, "score": tv}
                 tag = "  *** NEW BEST ***"
             gm, gs, av = float(mu[pos]), float(sigma[pos]), float(scores[pos])
             print(f"  #{eval_idx:2d} {smi:34s} util={gm:.3f} sd={gs:.3f} "
-                  f"acq={av:.3f} -> JNK3 {tv:.3f}{tag}")
+                  f"acq={av:.3f} -> {prop['label']} {tv:.3f}{tag}")
             with open(csv_path, "a", newline="") as f:
                 csv.DictWriter(f, fieldnames=CSV_FIELDS).writerow({
                     "eval_idx": eval_idx, "round": rnd, "run": args.run,
                     "llm": "auto" if args.auto else args.llm,
                     "picked_smiles": smi, "gp_util_mu": f"{gm:.4f}",
                     "gp_sigma": f"{gs:.4f}", "acq_value": f"{av:.4f}",
-                    "true_jnk3": f"{tv:.4f}", "best_so_far": f"{f_best:.4f}",
+                    "true_score": f"{tv:.4f}", "best_so_far": f"{f_best:.4f}",
                     "n_duels_cum": len(duels),
                 })
 
     utility, _ = bradley_terry(duels, len(mols))
-    rank_path = os.path.join(RESULTS_DIR, f"approach3gen_run{args.run}_ranking.csv")
+    rank_path = os.path.join(results_dir, f"approach3gen_run{args.run}_ranking.csv")
     with open(rank_path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["smiles", "bt_utility", "true_jnk3"])
+        w.writerow(["smiles", "bt_utility", "true_score"])
         for m, u, t in zip(mols, utility, true_vals):
             w.writerow([m["smiles"], f"{u:.4f}", f"{t:.4f}"])
     m = ranking_metrics(utility, np.array(true_vals))
     print("\n" + "=" * 60)
-    print(f"DONE. Best: {best['smiles']}  JNK3 = {best['jnk3']:.3f}")
-    print(f"Ranking quality (BT utility vs JNK3): Spearman {m['spearman']:+.3f} "
+    print(f"DONE. Best: {best['smiles']}  {prop['label']} = {best['score']:.3f}")
+    print(f"Ranking quality (BT utility vs {prop['label']}): Spearman {m['spearman']:+.3f} "
           f"| pairwise-acc {m['pairwise_accuracy']:.3f}")
     print(f"Results: {csv_path}\nRanking: {rank_path}")
 

@@ -6,8 +6,8 @@ oracle_env pins numpy<2, scikit-learn==1.2.2, rdkit==2023.9.5 (see
 scripts/setup_jnk3_oracle_env.sh) purely to keep that old pickle loadable.
 
 Protocol: one canonical SMILES per line on stdin -> one float score per line on
-stdout (flushed immediately), so jnk3_oracle.py in the main venv can drive this as
-a persistent subprocess instead of paying TDC's ~2-3s import cost per call.
+stdout (flushed immediately), so common.py's JNK3 section in the main venv can drive
+this as a persistent subprocess instead of paying TDC's ~2-3s import cost per call.
 """
 
 import sys

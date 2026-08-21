@@ -13,7 +13,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from metrics import (  # noqa: E402
+from common import (  # noqa: E402
     best_found,
     simple_regret,
     normalized_score,
