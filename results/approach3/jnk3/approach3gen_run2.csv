@@ -1,0 +1,16 @@
+eval_idx,round,run,llm,picked_smiles,gp_util_mu,gp_sigma,acq_value,true_score,best_so_far,n_duels_cum
+1,1,2,gemini,Nc1ccc(N)c(NC(=O)NC(=O)Nc2ccccc2)c1,11.3613,8.9723,15.8475,0.0000,0.3100,45
+2,1,2,gemini,Cc1ccc(O)c(O)c1,7.2769,10.5792,12.5665,0.0000,0.3100,45
+3,1,2,gemini,CC(C)(C)c1ccc(O)c(O)c1,6.9176,10.9299,12.3826,0.0000,0.3100,45
+4,1,2,gemini,Cc1ccc(O)c(Cl)c1,6.7001,10.6082,12.0042,0.0000,0.3100,45
+5,1,2,gemini,NC=C1C=CC(NS(=O)(=O)c2ccc(N)cc2)=C1,5.9023,10.8343,11.3194,0.0100,0.3100,45
+6,2,2,gemini,Nc1ccc(N)c(C(=O)NC(=O)Nc2ccccc2)c1,3.6412,8.7719,8.0271,0.0000,0.3100,65
+7,2,2,gemini,NC=CC=C1CC=CC=C2C=Cc3cc([N+](=O)[O-])cc(c3N1)C(=O)C2,1.5163,10.5494,6.7910,0.0500,0.3100,65
+8,2,2,gemini,Nc1ccc(Cl)cc1C(=O)Nc1ccccc1,0.2384,10.6076,5.5422,0.0100,0.3100,65
+9,2,2,gemini,O=C(O)c1ccccc1-c1ccc(Cl)cc1,0.0773,10.6100,5.3823,0.0000,0.3100,65
+10,2,2,gemini,NC=C1C=C(S(=O)(=O)O)CC=C1Oc1ccccc1,0.0545,10.6104,5.3597,0.0100,0.3100,65
+11,3,2,gemini,CC=Cc1ccc2ccccc2c1,-0.0000,9.6397,4.8199,0.0100,0.3100,85
+12,3,2,gemini,NC=Cc1ccccc1C(=O)Nc1ccccc1,-0.0000,9.6397,4.8199,0.0000,0.3100,85
+13,3,2,gemini,NC=Cc1ccccc1C(=O)Nc1ccccc1C(=O)Nc1ccccc1,-0.0000,9.6397,4.8199,0.0100,0.3100,85
+14,3,2,gemini,CC=CC=C1C=CN1S(=O)(=O)c1ccc(Cl)cc1,-0.0000,9.6397,4.8199,0.0100,0.3100,85
+15,3,2,gemini,Nc1ccc2cc1S(=O)(=O)c1ccc(Cl)cc1C=C2,-0.0000,9.6397,4.8199,0.0100,0.3100,85

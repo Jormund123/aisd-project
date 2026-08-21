@@ -1,3 +1,0 @@
-approach,run,best_found,improvement_over_seed,simple_regret,normalized_score,first_improvement_iter,iters_to_ceiling,success_rate,n_evals,rank_spearman,rank_kendall,pairwise_acc,top1_hit,ndcg_at_5
-3,1,1.1375,0.9295,0.0,1.0,3,7,0.1333,15,0.5253,0.4161,0.708,0.0,0.703
-3,2,1.1375,0.9295,0.0,1.0,5,5,0.0667,15,0.7112,0.6,0.8,0.0,0.8561

@@ -109,6 +109,8 @@ def main():
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--auto", action="store_true", help="oracle answers the duels")
     p.add_argument("--noise", type=float, default=0.0, help="--auto duel flip probability")
+    p.add_argument("--resume", action="store_true",
+                   help="Continue an existing CSV instead of overwriting it.")
     args = p.parse_args()
 
     prop = PROPERTIES[args.property]
@@ -132,8 +134,33 @@ def main():
     results_dir = RESULTS_ROOT if args.property == "esol" else os.path.join(RESULTS_ROOT, args.property)
     os.makedirs(results_dir, exist_ok=True)
     csv_path = os.path.join(results_dir, f"approach3gen_run{args.run}.csv")
-    with open(csv_path, "w", newline="") as f:
-        csv.DictWriter(f, fieldnames=CSV_FIELDS).writeheader()
+
+    eval_idx = 0
+    rnd = 0
+    if args.resume and os.path.exists(csv_path):
+        with open(csv_path, newline="") as f:
+            rows = list(csv.DictReader(f))
+        if rows:
+            picked = [r["picked_smiles"] for r in rows]
+            Zp, kept_p = vae.encode(picked)
+            by_row = {r["picked_smiles"]: r for r in rows}
+            for smi, z in zip(kept_p, Zp):
+                r = by_row[smi]
+                tv = float(r["true_score"])
+                mols.append({"name": "", "smiles": smi})
+                Z_mols.append(z)
+                true_vals.append(tv)
+                evaluated.add(smi)
+                if tv > f_best:
+                    f_best, best = tv, {"smiles": smi, "score": tv}
+            eval_idx = max(int(r["eval_idx"]) for r in rows)
+            rnd = max(int(r["round"]) for r in rows)
+        print(f"RESUMING from eval {eval_idx}/{args.budget}, round {rnd}. "
+              f"Loaded {len(rows)} prior eval(s). Duel history isn't persisted, "
+              f"so ranking re-bootstraps over all known molecules.")
+    else:
+        with open(csv_path, "w", newline="") as f:
+            csv.DictWriter(f, fieldnames=CSV_FIELDS).writeheader()
 
     mode = "AUTO (oracle duels)" if args.auto else f"MANUAL LLM ({args.llm})"
     print(f"Approach 3 GEN ({args.property}) | Run {args.run} | Budget {args.budget} "
@@ -141,14 +168,12 @@ def main():
     print(f"Logging to: {csv_path}")
     print(f"Starting best (seed): {best['smiles']} {prop['label']} = {best['score']:.3f}")
 
-    n_seed = len(mols)
-    boot = [(i, i + 1) for i in range(n_seed - 1)]
-    boot += [(0, i) for i in range(2, n_seed)]
+    n_mols = len(mols)
+    boot = [(i, i + 1) for i in range(n_mols - 1)]
+    boot += [(0, i) for i in range(2, n_mols)]
     duels += answer_duels(boot, context, mols, true_vals, prop, args.auto, args.noise, rng)
-    print(f"Bootstrapped ranking with {len(boot)} seed duels.")
+    print(f"Bootstrapped ranking with {len(boot)} duels over {n_mols} known molecule(s).")
 
-    eval_idx = 0
-    rnd = 0
     while eval_idx < args.budget:
         rnd += 1
         utility, _ = bradley_terry(duels, len(mols))

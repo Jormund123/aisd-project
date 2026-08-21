@@ -180,8 +180,12 @@ PROPERTIES = {
         "prompt_property_desc": "JNK3 kinase inhibition (0 to 1, higher = more likely a JNK3 inhibitor)",
         "variant_c_constraints": (
             "- Molecular weight must be under 500 Da\n"
-            "- Must contain at least one aromatic or heteroaromatic ring (common in "
-            "kinase-hinge binders)\n"
+            "- Must contain a heteroaromatic hinge-binding scaffold (e.g. aminopyridine, "
+            "aminopyrimidine, indazole, quinazoline, or purine-like core)\n"
+            "- Must have at least one hydrogen-bond donor (NH or OH) positioned to reach "
+            "the kinase hinge\n"
+            "- No more than one solvent-exposed aromatic substituent (avoid over-decorating "
+            "the core with extra rings)\n"
         ),
     },
 }

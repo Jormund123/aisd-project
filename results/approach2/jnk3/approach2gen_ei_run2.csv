@@ -1,0 +1,16 @@
+eval_idx,round,run,llm,acq,picked_smiles,gp_mu,gp_sigma,acq_value,surrogate_label,true_score,best_so_far
+1,1,2,gemini,ei,Nc1ccc(N)c(NC(=O)NC(=O)Nc2ccccc2)c1,0.1053,0.0879,0.0003,0.0100,0.0000,0.3100
+2,1,2,gemini,ei,Cc1ccc(O)c(O)c1,0.0910,0.0889,0.0002,0.0000,0.0000,0.3100
+3,1,2,gemini,ei,Cc1ccc(O)c(Cl)c1,0.0904,0.0889,0.0002,0.0000,0.0000,0.3100
+4,1,2,gemini,ei,CC(C)(C)c1ccc(O)c(O)c1,0.0875,0.0889,0.0002,0.0000,0.0000,0.3100
+5,1,2,gemini,ei,NC=C1C=CC(NS(=O)(=O)c2ccc(N)cc2)=C1,0.0861,0.0889,0.0002,0.0100,0.0100,0.3100
+6,2,2,gemini,ei,NC=CC=C1C=CN1S(=O)(=O)c1ccc(Cl)cc1,0.0637,0.0843,0.0000,0.0100,0.0200,0.3100
+7,2,2,gemini,ei,NC=Cc1ccccc1C(=O)NC(=O)NC(=O)NC=O,0.0637,0.0843,0.0000,0.0100,0.0000,0.3100
+8,2,2,gemini,ei,NC=Cc1ccccc1C(=O)NC(=O)Nc1ccccc1,0.0637,0.0843,0.0000,0.0100,0.0000,0.3100
+9,2,2,gemini,ei,O=C(O)c1ccccc1-c1ccccc1,0.0637,0.0843,0.0000,0.0000,0.0000,0.3100
+10,2,2,gemini,ei,Nc1ccccc1S(=O)(=O)c1ccccc1-c1ccccc1,0.0637,0.0843,0.0000,0.0000,0.0100,0.3100
+11,3,2,gemini,ei,O=Cc1ccccc1C(=O)NC(=O)c1ccccc1,0.0517,0.0786,0.0000,0.0100,0.0100,0.3100
+12,3,2,gemini,ei,O=C(O)c1ccc(O)cc1,0.0517,0.0786,0.0000,0.0000,0.0000,0.3100
+13,3,2,gemini,ei,Nc1ccc(Cl)cc1NC(=O)Nc1ccccc1,0.0517,0.0786,0.0000,0.0100,0.0100,0.3100
+14,3,2,gemini,ei,O=[N+]([O-])c1ccc2c(c1)C=CNC=CC=CN=N2,0.0517,0.0786,0.0000,0.0100,0.0700,0.3100
+15,3,2,gemini,ei,Nc1ccc(Cl)cc1NC(=O)c1ccccc1,0.0517,0.0786,0.0000,0.0100,0.0000,0.3100

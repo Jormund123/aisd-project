@@ -115,6 +115,8 @@ def main():
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--auto", action="store_true", help="oracle stands in for the LLM")
     p.add_argument("--noise", type=float, default=0.0, help="--auto surrogate noise std")
+    p.add_argument("--resume", action="store_true",
+                   help="Continue an existing CSV instead of overwriting it.")
     args = p.parse_args()
 
     prop = PROPERTIES[args.property]
@@ -135,8 +137,34 @@ def main():
     results_dir = RESULTS_ROOT if args.property == "esol" else os.path.join(RESULTS_ROOT, args.property)
     os.makedirs(results_dir, exist_ok=True)
     csv_path = os.path.join(results_dir, f"approach2gen_{args.acq}_run{args.run}.csv")
-    with open(csv_path, "w", newline="") as f:
-        csv.DictWriter(f, fieldnames=CSV_FIELDS).writeheader()
+
+    eval_idx = 0
+    rnd = 0
+    if args.resume and os.path.exists(csv_path):
+        with open(csv_path, newline="") as f:
+            rows = list(csv.DictReader(f))
+        if rows:
+            picked = [r["picked_smiles"] for r in rows]
+            Zp, kept_p = vae.encode(picked)
+            by_row = {r["picked_smiles"]: r for r in rows}
+            for smi, z in zip(kept_p, Zp):
+                r = by_row[smi]
+                tv = float(r["true_score"])
+                lab = float(r["surrogate_label"]) if r["surrogate_label"] else tv
+                L_Z.append(z)
+                L_y.append(lab)
+                true_known.append(tv)
+                context.append({"name": "", "smiles": smi, "score": lab})
+                evaluated.add(smi)
+                if tv > f_best:
+                    f_best, best = tv, {"name": "", "smiles": smi, "score": tv}
+            eval_idx = max(int(r["eval_idx"]) for r in rows)
+            rnd = max(int(r["round"]) for r in rows)
+        print(f"RESUMING from eval {eval_idx}/{args.budget}, round {rnd}. "
+              f"Loaded {len(rows)} prior eval(s).")
+    else:
+        with open(csv_path, "w", newline="") as f:
+            csv.DictWriter(f, fieldnames=CSV_FIELDS).writeheader()
 
     mode = "AUTO (oracle surrogate)" if args.auto else f"MANUAL LLM ({args.llm})"
     print(f"Approach 2 GEN ({args.property}) | Acq {args.acq.upper()} | Run {args.run} | "
@@ -144,8 +172,6 @@ def main():
     print(f"Logging to: {csv_path}")
     print(f"Starting best (seed): {best['name']} {prop['label']} = {best['score']:.3f}")
 
-    eval_idx = 0
-    rnd = 0
     while eval_idx < args.budget:
         rnd += 1
         gp = GP().fit(np.array(L_Z), np.array(L_y))
