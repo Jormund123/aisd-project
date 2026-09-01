@@ -8,4 +8,5 @@ CLAUDE.md
 .claude/
 src/.claude/
 results/_auto_validation/
-materials/implementationPlan.md
+docs/
+materials/
