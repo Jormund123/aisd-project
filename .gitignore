@@ -4,3 +4,8 @@ __pycache__/
 *.pyc
 .DS_Store
 Icon?
+CLAUDE.md
+.claude/
+src/.claude/
+results/_auto_validation/
+materials/implementationPlan.md
