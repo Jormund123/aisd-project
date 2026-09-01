@@ -1,0 +1,4 @@
+run,best_found,improvement_over_seed,pairwise_acc,n_duels,n_evals
+1,0.31,0.0,0.7906,85,15
+2,0.31,0.0,0.823,85,15
+3,0.31,0.0,0.7906,85,15

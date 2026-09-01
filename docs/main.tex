@@ -1,0 +1,473 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{float}
+\usepackage[margin=1cm]{geometry}   % >= 2.5 cm all around
+\usepackage{graphicx}                 % Required for inserting images
+\usepackage{subcaption}
+\title{AI for Ranking Based Optimization}
+\author{MA-INF 4245 - Lab AI for Scientific Discovery}
+\date{}  % <-- empty date = no date printed
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+\begin{itemize}
+    \item I use an LLM to find, in at most 15 evaluations, the molecule with highest predicted aqueous solubility. Each evaluation is costly (manual prompting, copying SMILES, waiting for ESOL), so this setup mirrors realistic lab constraints and follows prior work on expensive black‑box Bayesian optimization with only 10–30 evaluations (e.g., Shahriari et al.).
+    \item AI suggests to judges molecules; the ESOL calculator (converts molecular structure into a solubility score with 70\% accuracy) is the answer key that tells me the true score of any molecule. 
+    \item I chose 13 seed molecules that are spread across the whole solubility range. 
+\end{itemize}
+
+\section{Approach 1: Direct Optimizer}
+\begin{itemize}
+    \item I paste the prompt and the LLM responds with a SMILES code.
+    \item I paste the SMILES into the terminal triggering checks. The code checks whether the molecule is real using RDKit. It also rejects mixtures.
+    \item The correct molecule is then scored with ESOL and saved.
+\end{itemize}
+
+\subsection{Prompts}
+\begin{enumerate}
+    \item Version A: The simplest and most straightforward prompt without any rules. 
+    \item Version B: Version A + Gentle Rules (e.g., don't repeat chains).
+    \item \textbf{Version C:} Strict rules that AI needs to follow (e.g., water-friendly group, at most one ring, and no mixtures). 
+    
+    \begin{itemize}
+        \item Molecular weight $< 150$ $\rightarrow$ most of the highly soluble seeds are under $\sim 95$ Da.
+        \item Must have OH/NH$_2$/C=O $\rightarrow$ direct proxy for LogP without asking the LLM to compute LogP.
+        \item $\le 1$ aromatic ring; no salt mixtures; no homologous-series extension.
+    \end{itemize}
+
+\end{enumerate}
+
+\subsection{Results}
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccccc}
+\hline
+Version.Run & Best & Improvement & Success & Hit-rate & Invalid & Diversity \\
+\hline
+A.1 & +3.314 & +3.106 & 0.75 & 0.92 & 0.00 & 0.407 \\
+A.2 & +2.184 & +1.976 & 0.40 & 1.00 & 0.30 & 0.284 \\
+B.1 & +2.751 & +2.543 & 0.27 & 0.89 & 0.18 & 0.200 \\
+B.2 & +0.563 & +0.355 & 0.50 & 0.83 & 0.00 & 0.186 \\
+C.1 & +1.586 & +1.378 & 0.40 & 1.00 & 0.00 & 0.232 \\
+C.2 & +1.258 & +1.050 & 0.50 & 0.90 & 0.00 & 0.243 \\
+C.3 & +1.781 & +1.573 & 0.67 & 1.00 & 0.00 & 0.253 \\
+\hline
+\end{tabular}
+\caption{Results for different prompt versions and runs.}
+\label{tab:results}
+\end{table}
+
+Version C is the most reliable and the last run confirms it. All 3 runs gave valid molecules every time (zero broken answers across all three).
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/convergence.png}
+        \caption{Best score so far, per turn. Version A spikes (loophole), B is inconsistent, C rises smoothly and levels off.}
+        \label{fig:convergence}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/comparison.png}
+        \caption{Best score per version vs.\ random guessing (+0.41) and database maximum. All beat random.}
+        \label{fig:comparison}
+    \end{subfigure}
+
+    \vspace{0.5em}
+
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/invalid_rate.png}
+        \caption{Fraction of invalid answers. A: 15\%, B: 9\%, C: 0\%. Firm rules improve reliability.}
+        \label{fig:invalid_rate}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/diversity.png}
+        \caption{Idea variety (lower means more varied). A repeats one trick; B and C explore real chemistry.}
+        \label{fig:diversity}
+    \end{subfigure}
+
+    \caption{Comparison across prompt versions A, B, and C.}
+    \label{fig:results_grid}
+\end{figure}
+
+\section{Approach 2: Generative BO}
+\begin{itemize}
+    \item A trained VAE encodes known molecules into a 64-dim coordinate map and generates new candidate molecules by stepping around the best-known ones, then decoding.
+    \item I paste the candidates to the LLM; it predicts a LogS number for each (no molecule design, just scoring).
+    \item A GP fits the landscape over those predictions, and an acquisition function (EI or UCB) picks which candidate to actually test.
+    \item The picked molecule is scored with ESOL (uses budget), recorded, and the loop repeats.
+\end{itemize}
+
+\subsection{Pipeline}
+Unlike Approach 1, the AI never invents a molecule directly here; it only acts as a \textbf{surrogate} that scores candidates a math engine proposes.
+
+\begin{enumerate}
+    \item \textbf{VAE (molecule map):} encoder/decoder trained on $\sim$9,000 real molecules. Nearby coordinates decode to similar molecules, so BO can search continuously and still get valid chemistry back.
+    \item \textbf{GP (landscape guesser):} fits the solubility surface over the AI's predictions, with uncertainty. The GP predicts a new molecule's LogS as a similarity-weighted average of the LogS values of molecules already tested nearby in latent space, and its uncertainty shrinks the more tested molecules sit close to that point (and stays high far from anything tested).
+    \item \textbf{Acquisition function:} EI (Expected Improvement) or UCB (Upper Confidence Bound) picks the next candidate, trading off "looks good" vs.\ "I'm unsure here."
+\end{enumerate}
+
+Two decision rules (EI, UCB), each run 3--4 times. The first six runs shared one candidate-generation seed; one independent-seed run per rule was added afterward to test robustness.
+
+\subsection{Results}
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\hline
+Rule.Run & Best found & MAE & Pairwise accuracy \\
+\hline
+EI.1  & +1.219 & 0.83 & 0.876 \\
+EI.2  & +1.219 & 0.65 & 0.857 \\
+EI.3  & +1.219 & 1.39 & 0.844 \\
+EI.4  & +1.219 & 1.03 & 0.857 \\
+UCB.1 & +1.219 & 0.48 & 0.867 \\
+UCB.3 & +1.219 & 0.60 & 0.819 \\
+UCB.4 & +0.208 & 1.32 & 0.657 \\
+\hline
+\end{tabular}
+\caption{Results for Approach 2, both acquisition rules, pooled: best found $1.075 \pm 0.354$, pairwise accuracy $0.825 \pm 0.071$.}
+\label{tab:results_a2}
+\end{table}
+
+Six of seven runs (including EI.4, on a genuinely independent candidate pool) converge on the same invented molecule at +1.219, evidence of a robustly-reachable peak rather than a shared-seed artifact. UCB.4, run on its own independent pool, is a real failure: all 15 picks scored below the seed (+0.208), best-so-far never moved. The AI's raw numbers are shaky (MAE 0.5--1.4), but its pairwise ordering is usually strong (0.82--0.88), which is what BO actually needs to climb.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/convergence2_gen.png}
+        \caption{Best score so far, per evaluation. Six lines step up to +1.22; UCB.4 stays flat at the seed the whole run.}
+        \label{fig:convergence2}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/topk2_gen.png}
+        \caption{Top-3-so-far mean per round. Rises and levels off for six runs; flat for UCB.4.}
+        \label{fig:topk2}
+    \end{subfigure}
+
+    \vspace{0.5em}
+
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/calibration2_gen.png}
+        \caption{Predicted vs.\ true LogS. Loose scatter around the diagonal (raw numbers shaky) but trends the right way.}
+        \label{fig:calibration2}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/pairwise2_gen.png}
+        \caption{Pairwise accuracy per run vs.\ coin-flip (0.50). Six runs 0.82--0.88; UCB.4 drops to 0.657.}
+        \label{fig:pairwise2}
+    \end{subfigure}
+
+    \caption{Comparison across Approach 2 runs (EI vs.\ UCB).}
+    \label{fig:results_grid_a2}
+\end{figure}
+
+\section{Approach 3: Generative PBO}
+\begin{itemize}
+    \item Same VAE map and GP engine as Approach 2; the AI never scores a molecule, it only answers "which is more soluble, A or B?" for pairs (duels).
+    \item Bradley-Terry turns all duels so far into a per-molecule utility (win/loss strength, like ranking sports teams).
+    \item The GP fits the solubility landscape over those utilities; a UCB acquisition picks the next candidate to test.
+    \item ESOL scores the pick (uses budget), the pick is added back into the pool as a fresh duel reference, and the loop repeats.
+\end{itemize}
+
+\subsection{Pipeline}
+\begin{enumerate}
+    \item \textbf{Bootstrap:} before round 1, the 13 seed molecules are ranked against each other with a chain + star set of duels, so the very first GP fit already has a utility gradient instead of flat nothing.
+    \item \textbf{Generate:} each round, the VAE decodes 48 fresh candidates anchored around the top-6 most-soluble molecules measured so far.
+    \item \textbf{Rank via GP:} Bradley-Terry utility $\to$ GP posterior mean/uncertainty over candidates $\to$ UCB (kappa 0.5) picks a batch of up to 5.
+    \item \textbf{Duel the picks:} each new pick is duelled against the top-3 true-LogS incumbents plus the current ranking leader, so every pick is judged against strong references, not random ones.
+    \item \textbf{Evaluate:} ESOL scores the picks (budget of 15 total), picks join the pool as future duel references, repeat until budget exhausted.
+\end{enumerate}
+
+\subsection{Why the ranking pool is 28 molecules, not more}
+The pool that Bradley-Terry ranks is exactly the seeds plus everything actually spent budget on: 13 seeds (all encode cleanly, none dropped) + 15 budget-evaluated picks = 28 molecules per run. It is not larger because:
+\begin{itemize}
+    \item Every molecule added to the ranking pool needs real duels to place it, and duels are pasted to the LLM by hand (batch size 5/round, 80--88 duels per full run). Growing the pool without spending budget would mean asking the AI to judge molecules that were never actually scored, which breaks the whole point of a budget-limited search.
+    \item The 48 candidates generated per round are a disposable proposal pool: the GP/UCB step scores all 48, but only the top few (up to 5) that get evaluated by ESOL are kept and folded into the ranked set. The other $\sim$43 per round are discarded, since keeping them would need duels too and adds no signal without a real ESOL label.
+\end{itemize}
+
+\subsection{Results}
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccc}
+\hline
+Run & Best found & Duels asked & Pairwise accuracy vs.\ ESOL & Candidate pool \\
+\hline
+1 & +0.755 & 80 & 0.799 & seed pool (default) \\
+2 & +0.901 & 88 & 0.841 & seed pool (default) \\
+3 & +0.755 & 80 & 0.780 & seed pool (default) \\
+4 & +0.755 & 80 & 0.717 & independent, different seed \\
+\hline
+\end{tabular}
+\caption{Results for Approach 3. Pooled: pairwise accuracy $0.786 \pm 0.052$, best found $0.804 \pm 0.069$.}
+\label{tab:results_a3}
+\end{table}
+
+Three of four runs (including run 4, on a genuinely independent candidate-generation seed) converge on the same molecule, glycinamide (+0.7555), evidence of a robustly-reachable peak, not a shared-seed artifact. The AI's duel judgments are correct 72--84\% of the time, comparable to Approach 2's regressor (0.83) on the same fair pairwise-accuracy yardstick. Best-found sits a bit below Approach 2's, since a duel gives only ordinal signal (A or B, no magnitude), so the GP landscape is coarser and the search climbs slightly less far in the same budget.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/convergence3_gen.png}
+        \caption{Best score so far, per evaluation. Run 2 climbs highest; runs 1 and 4 land on the same lower peak from different candidate pools.}
+        \label{fig:convergence3}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/topk3_gen.png}
+        \caption{Top-3-so-far mean per round. Rises steadily, steepest for run 2, then levels off.}
+        \label{fig:topk3}
+    \end{subfigure}
+
+    \vspace{0.5em}
+
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ranking_quality3_gen.png}
+        \caption{Bradley-Terry strength vs.\ true ESOL score. Dots trend upward in all runs, tightest for run 2.}
+        \label{fig:rankingquality3}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/pairwise3_gen.png}
+        \caption{Pairwise accuracy per run vs.\ coin-flip (0.50). All four sit between 0.72 and 0.84.}
+        \label{fig:pairwise3}
+    \end{subfigure}
+
+    \caption{Comparison across Approach 3 runs. Run 3's step-by-step trajectory was lost to a file mishap, so only 3 lines appear in the convergence/top-$k$ plots; its final best-found and pairwise accuracy above are recovered from its ranking file.}
+    \label{fig:results_grid_a3}
+\end{figure}
+
+\section{Comparison: ESOL}
+Same budget (15 evaluations), same 13 seed molecules, same starting bar (+0.208) for all three, so the outcome column is directly comparable. The AI's-job column is not one-size-fits-all: Approach 1 invents freely (graded by hit-rate), Approaches 2/3 only steer a shared VAE+GP+BO engine (graded by pairwise accuracy vs.\ ESOL, via one shared \texttt{analysis\_common.py}).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\hline
+Approach & Best (mean / max) & Improvement over bar & AI's job \\
+\hline
+1. Direct Optimizer      & 1.92 / 3.31 & +1.71 & 93\% of proposals beat the bar \\
+2. Predictor (gen.\ BO)  & 1.07 / 1.22 & +0.87 & pairwise acc.\ 0.825; 1/7 runs failed \\
+3. Judge (gen.\ PBO)     & 0.79 / 0.90 & +0.58 & pairwise acc.\ 0.786 \\
+\hline
+\end{tabular}
+\caption{All three approaches vs.\ the seed bar (+0.208) and random baseline (+0.408).}
+\label{tab:comparison}
+\end{table}
+
+\textbf{Takeaways:} Approach 1 reaches the highest scores but only after strict rules block it from cheating the ESOL formula (Version C). Approaches 2 and 3 invent more conservatively (same VAE+BO engine, same budget) but expose a clean, fair comparison: as a regressor or as a pairwise judge, the AI orders solubility about equally well (0.83 vs.\ 0.79), even though its raw numeric guesses are unreliable. Approach 2's one outright failure (UCB, independent seed) is the clearest reminder that "usually works" is not "always works."
+
+\section{JNK3: Kinase Inhibition}
+\begin{itemize}
+    \item Second property, same three approaches, same pipeline (\texttt{--property jnk3}), same budget of 15 evaluations. Only the oracle and the prompts change.
+    \item The oracle is different in kind from ESOL: not a closed-form formula, but a pretrained scikit-learn classifier (the standard GuacaMol/MOSES JNK3 model) that outputs the probability (0--1) that a molecule inhibits JNK3 kinase. It runs in a separate legacy-sklearn subprocess (\texttt{jnk3\_worker.py}), since the pickled model needs an old sklearn version incompatible with the rest of the pipeline.
+    \item 14 seed molecules (vs.\ 13 for ESOL), again spanning the score range. Best seed: \texttt{zinc\_01}, \texttt{COc1ccc(C=C(C\#N)C\#N)cc1O}, JNK3 = +0.31. That seed also happens to be the single best molecule across the entire 3{,}000-molecule pre-scored ZINC pool used for the random baseline (pool ceiling = seed best = +0.31), so beating the bar here means beating the best molecule found anywhere in a 3k-molecule pool, not just the 14 seeds shown.
+    \item Domain hint injected into every JNK3 prompt (all approaches, all variants): JNK3 is an ATP-competitive kinase, real inhibitors bind the hinge through a heteroaromatic core (aminopyridine, aminopyrimidine, indazole, quinazoline, purine-like scaffolds) with a solvent-exposed substituent and moderate MW ($\sim$250--500 Da); simple aliphatic molecules essentially never score above 0.
+\end{itemize}
+
+\subsection{Approach 1: Direct Optimizer (JNK3)}
+Variant C constraints for JNK3 (stricter and more scaffold-specific than the generic ESOL ones, mirroring the domain hint): MW $<$ 500 Da; must contain a named heteroaromatic hinge-binding scaffold (aminopyridine, aminopyrimidine, indazole, quinazoline, or purine-like core); at least one H-bond donor (NH/OH) positioned to reach the hinge; no more than one solvent-exposed aromatic substituent (no over-decorating the core with extra rings).
+
+One Variant C run (budget 15, single LLM). Best found: +0.39 (improvement +0.08 over the +0.31 bar), reached at iteration 1 and never beaten again (success rate 1/15). Hit-rate: 9/15 proposals (60\%) beat the bar. Zero invalid SMILES.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccccc}
+\hline
+Variant.Run & Best & Improvement & Success & Hit-rate & Invalid & Diversity \\
+\hline
+C.1 & +0.390 & +0.080 & 0.067 & 0.600 & 0.00 & 0.434 \\
+\hline
+\end{tabular}
+\caption{Approach 1, JNK3, Variant C.}
+\label{tab:results_jnk3_a1}
+\end{table}
+
+Unlike the ESOL runs, every single JNK3 proposal (all 15) uses the same pharmacophore family the domain hint suggests: a 2-aminoquinazoline (or close bioisostere, e.g.\ pyrazolo-pyrimidine) hinge-binding core linked to a para-substituted benzamide or benzenesulfonamide tail. The LLM's own reasoning text names this explicitly and iterates substituents (6-chloro, 6-fluoro, 6-cyano, 6,7-dimethoxy, sulfonamide-for-amide swaps) rather than trying a different scaffold family. This shows up directly as a higher mean pairwise Tanimoto similarity (0.434) than any ESOL Variant C run (0.23--0.25): the JNK3 domain hint successfully steers the LLM toward real kinase chemistry, but at the cost of scaffold diversity, since it converges on one hinge-binder family almost immediately and stays there.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/convergence_jnk3.png}
+        \caption{Best score so far. Jumps to +0.39 at iteration 1, flat for the remaining 14 iterations.}
+        \label{fig:convergence_jnk3}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/comparison_jnk3.png}
+        \caption{Variant C (+0.39) vs.\ random baseline (+0.08), pool ceiling and seed best (both +0.31). The LLM beats the entire 3k-molecule pool.}
+        \label{fig:comparison_jnk3}
+    \end{subfigure}
+
+    \vspace{0.5em}
+
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/diversity_jnk3.png}
+        \caption{Mean pairwise Tanimoto similarity: 0.43, noticeably higher (less diverse) than ESOL Variant C.}
+        \label{fig:diversity_jnk3}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/invalid_rate_jnk3.png}
+        \caption{0\% invalid, same as ESOL Variant C.}
+        \label{fig:invalid_rate_jnk3}
+    \end{subfigure}
+
+    \caption{Approach 1, JNK3, Variant C.}
+    \label{fig:results_grid_a1_jnk3}
+\end{figure}
+
+\subsection{Approach 2: Generative BO (JNK3)}
+Same VAE + GP + acquisition pipeline as ESOL, unchanged; only the oracle and prompt wording differ. Two decision rules (EI, UCB), 3 runs each (6 total).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\hline
+Rule.Run & Best found & Pred.\ MAE & Pairwise accuracy \\
+\hline
+EI.1  & +0.31 & 0.007 & 0.603 \\
+EI.2  & +0.31 & 0.008 & 0.429 \\
+EI.3  & +0.31 & 0.010 & 0.603 \\
+UCB.1 & +0.31 & 0.009 & 0.619 \\
+UCB.2 & +0.31 & 0.006 & 0.000 \\
+UCB.3 & +0.31 & 0.008 & 0.333 \\
+\hline
+\end{tabular}
+\caption{Approach 2, JNK3, both acquisition rules. Every run: best found = seed best exactly, improvement = 0.0. Pooled pairwise accuracy: $0.431 \pm 0.20$.}
+\label{tab:results_a2_jnk3}
+\end{table}
+
+The headline result is a clean, complete failure to improve: all 6 runs finish with best-so-far pinned at exactly the seed value +0.31, never once above it (confirmed against the CSV logs and the flat convergence plot below). The mean top-3-per-round score sits near 0.00--0.03 the entire time, i.e.\ the VAE's invented candidates score essentially zero on JNK3, nowhere near the seed. The LLM's numeric predictions track those near-zero true scores tightly (MAE 0.006--0.01, calibration plot clusters tight on the diagonal near the origin) -- so the LLM correctly recognizes the candidates are bad, but the VAE (trained on general drug-like SMILES, not JNK3-biased) essentially never proposes a real kinase-hinge binder in its neighborhood of the seeds. The bottleneck here is candidate generation, not the LLM's judgment. Pairwise accuracy is correspondingly weak and inconsistent (0.00--0.62, mean 0.43, barely above the 0.50 coin-flip line and far below ESOL's 0.825): with true scores bunched near 0, tiny absolute differences are hard to rank correctly.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/convergence2_gen_jnk3.png}
+        \caption{Best score so far. All 6 lines flat at the seed value +0.31 for all 15 evaluations.}
+        \label{fig:convergence2_jnk3}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/topk2_gen_jnk3.png}
+        \caption{Top-3-so-far mean per round: 0.00--0.03, nowhere near the +0.31 seed line.}
+        \label{fig:topk2_jnk3}
+    \end{subfigure}
+
+    \vspace{0.5em}
+
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/calibration2_gen_jnk3.png}
+        \caption{Predicted vs.\ true JNK3 score. All points cluster tight near the origin, on the diagonal: correct predictions of uniformly bad candidates.}
+        \label{fig:calibration2_jnk3}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/pairwise2_gen_jnk3.png}
+        \caption{Pairwise accuracy per run: 0.00--0.62, mean 0.43, close to the 0.50 coin-flip line.}
+        \label{fig:pairwise2_jnk3}
+    \end{subfigure}
+
+    \caption{Approach 2, JNK3, EI vs.\ UCB.}
+    \label{fig:results_grid_a2_jnk3}
+\end{figure}
+
+\subsection{Approach 3: Generative PBO (JNK3)}
+Same duel/Bradley-Terry pipeline as ESOL, same candidate source as Approach 2 (JNK3) above. 3 runs.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\hline
+Run & Best found & Duels asked & Pairwise accuracy vs.\ JNK3 \\
+\hline
+1 & +0.31 & 85 & 0.791 \\
+2 & +0.31 & 85 & 0.823 \\
+3 & +0.31 & 85 & 0.791 \\
+\hline
+\end{tabular}
+\caption{Approach 3, JNK3. Pooled: pairwise accuracy $0.801 \pm 0.015$, best found = seed best in every run.}
+\label{tab:results_a3_jnk3}
+\end{table}
+
+Best-so-far is flat at the seed value +0.31 in all 3 runs, identical outcome to Approach 2: the VAE never proposes a candidate that beats the seed, regardless of how the AI opinion is elicited. The interesting contrast is ranking quality: despite scoring the same weak candidate pool, the pairwise judge is clearly better calibrated than the numeric regressor here (mean pairwise accuracy 0.80 vs.\ 0.43). The ranking-quality plot shows Bradley-Terry utility rising close to monotonically with true JNK3 score across the full range, from the mass of near-zero candidates up through the few real outliers at 0.18--0.31, matching what Approach 3 achieved on ESOL (0.79). Comparisons ("which of these two is more likely to inhibit JNK3'') hold up far better than absolute numeric scoring on a heavily skewed, near-zero-inflated score distribution like JNK3's. Good ranking of a bad pool still cannot invent a better molecule than the pool contains, though: ranking quality and reachable ceiling are answering two different questions.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/convergence3_gen_jnk3.png}
+        \caption{Best score so far. All 3 lines flat at +0.31 for all 15 evaluations.}
+        \label{fig:convergence3_jnk3}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/topk3_gen_jnk3.png}
+        \caption{Top-3-so-far mean per round: 0.00--0.02, same failure-to-invent pattern as Approach 2.}
+        \label{fig:topk3_jnk3}
+    \end{subfigure}
+
+    \vspace{0.5em}
+
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/ranking_quality3_gen_jnk3.png}
+        \caption{Bradley-Terry strength vs.\ true JNK3 score. Rises close to monotonically across the full 0--0.31 range, all 3 runs overlapping.}
+        \label{fig:rankingquality3_jnk3}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/pairwise3_gen_jnk3.png}
+        \caption{Pairwise accuracy per run: 0.79, 0.82, 0.79, all comfortably above chance and well above Approach 2's JNK3 numbers.}
+        \label{fig:pairwise3_jnk3}
+    \end{subfigure}
+
+    \caption{Approach 3, JNK3.}
+    \label{fig:results_grid_a3_jnk3}
+\end{figure}
+
+\subsection{Comparison: JNK3}
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\hline
+Approach & Best (mean / max) & Improvement over bar & AI's job \\
+\hline
+1. Direct Optimizer      & 0.39 / 0.39 (n=1) & +0.08 & 60\% of proposals beat the bar \\
+2. Predictor (gen.\ BO)  & 0.31 / 0.31 & +0.00 & pairwise acc.\ 0.431; 0/6 runs improved \\
+3. Judge (gen.\ PBO)     & 0.31 / 0.31 & +0.00 & pairwise acc.\ 0.801; 0/3 runs improved \\
+\hline
+\end{tabular}
+\caption{All three approaches vs.\ the JNK3 seed bar (+0.31) and random baseline (+0.078).}
+\label{tab:comparison_jnk3}
+\end{table}
+
+\textbf{Takeaways:} the ranking between approaches flips relative to ESOL. Approach 1 (free-form invention, chemistry-literate LLM reasoning, guided by the domain hint) is the only method that beats the bar on JNK3, and it beats not just the 14 seeds but the entire 3{,}000-molecule scored pool. Approaches 2 and 3 never improve on the seed in any of 9 combined runs, because their generative engine is the bottleneck: a VAE trained on general small-molecule SMILES essentially never decodes a real kinase-hinge binder near the seed region in latent space, so the BO/PBO loop has nothing good to select regardless of how well the AI judges what it is shown. That said, Approaches 2 and 3 are not equally uninformative: on the same weak candidate pool, the pairwise judge (0.80 pairwise accuracy) is dramatically more reliable than the numeric regressor (0.43, barely above chance) at telling good from bad, because JNK3 scores are heavily skewed near zero and comparisons handle that skew far better than absolute numbers. The clearest overall JNK3 finding: free-form LLM invention with a strong domain hint is currently the only one of the three methods that can escape a search space the trained generative model was never built for.
+
+\end{document}

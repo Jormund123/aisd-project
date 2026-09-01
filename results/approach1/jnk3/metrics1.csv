@@ -1,0 +1,2 @@
+approach,variant,run,best_found,improvement_over_seed,first_improvement_iter,success_rate,hit_rate,invalid_rate,diversity_tanimoto,n_evals
+1,C,1,0.39,0.08,1,0.0667,0.6,0.0,0.4338,15
